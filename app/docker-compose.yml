@@ -1,0 +1,52 @@
+dbdata:
+    image: postgres
+    command: "true"
+
+db:
+    extends: 
+        file: common.yml
+        service: db_base
+    volumes_from:
+        - dbdata
+    ports:
+        - "9432:5432"
+ek:
+    image: nshou/elasticsearch-kibana
+    ports:
+        - "5601:5601"
+        - "9200:9200"
+redis:
+    image: redis
+    ports:
+        - "6379:6379"
+frontend:
+    build: frontend/
+    command: gulp develop
+    ports:
+        - "35729:35729"
+    volumes:
+        - "./frontend/src:/src"
+        - "./frontend/dist:/dist"
+        - "./frontend/fonts:/fonts"
+        - "./frontend/images:/images"
+        - "./frontend/package.json:/package.json"
+        - "./frontend/bower.json:/bower.json"
+        - "./frontend/Gulpfile.js:/Gulpfile.js"
+django:
+    extends: 
+        file: common.yml
+        service: django_base
+    entrypoint: []
+    command: "python3 manage.py runserver 0.0.0.0:8000"
+    ports:
+        - "8000:8000"
+    volumes:
+        - "./backend:/src"
+        - "./frontend/dist:/static"
+        - "./media:/media"
+    links:
+        - db
+        - ek
+        - redis
+    environment:
+        DJANGO_SETTINGS_MODULE: conf.settings
